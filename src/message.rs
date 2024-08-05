@@ -9,10 +9,6 @@ pub enum Message {
     Response(Response),
 }
 
-pub trait IntoMessage {
-    fn into_message(self) -> Message;
-}
-
 #[derive(Serialize, Deserialize, Debug, From)]
 pub struct Response {
     pub ok: bool,
@@ -35,7 +31,7 @@ mod tests {
 
     #[test]
     fn request() {
-        let cmd: Command = Ping::new::<String>(None).into();
+        let cmd: Command = Ping::new(Some("hello")).into();
         let msg: Message = cmd.into();
 
         assert!(matches!(msg, Message::Request(_)));

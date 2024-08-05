@@ -1,10 +1,10 @@
-async function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+async function sleep(s) {
+  return new Promise((resolve) => setTimeout(resolve, s * 1000))
 }
 
 let i = 0
 while (true) {
   console.log(`[${new Date().toISOString()}] - ${i}`)
-  await sleep(5000)
+  await sleep(1)
   i++
 }

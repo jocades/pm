@@ -1,5 +1,5 @@
 use super::Executor;
-use crate::{message::IntoMessage, Command, Connection, Message, Response};
+use crate::{Connection, Response};
 
 use clap::Args;
 use serde::{Deserialize, Serialize};
@@ -14,13 +14,6 @@ impl Ping {
         Ping {
             msg: msg.map(|s| s.into()),
         }
-    }
-}
-
-// implicit conversion
-impl IntoMessage for Ping {
-    fn into_message(self) -> Message {
-        Message::Request(Command::Ping(self))
     }
 }
 

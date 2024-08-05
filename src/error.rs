@@ -1,6 +1,5 @@
 use derive_more::From;
 use std::fmt;
-use std::io;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -8,7 +7,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     Custom(String),
     #[from]
-    Io(io::Error),
+    Io(std::io::Error),
     #[from]
     Parse(serde_json::Error),
 }
