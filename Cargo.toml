@@ -2,14 +2,23 @@
 name = "pm"
 version = "0.1.0"
 edition = "2021"
-default-run = "cli"
+default-run = "pm"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "pm"
+path = "src/bin/cli.rs"
+
+[[bin]]
+name = "pm-daemon"
+path = "src/bin/daemon.rs"
 
 [dependencies]
 clap = { version = "4.5.13", features = ["derive"] }
 tokio = { version = "1.39.2", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+derive_more = { version = "0.99.18", features = ["from"] }
 sysinfo = "0.31.2"
-ctrlc = "3.4.4"
+bytes = { version = "1.7.1", features = ["serde"] }
+env_logger = "0.11.5"
+log = "0.4.22"

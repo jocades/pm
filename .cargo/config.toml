@@ -1,0 +1,5 @@
+[alias]
+rr = "run --release"
+
+[env]
+RUST_LOG = "trace" # only use `error` in production

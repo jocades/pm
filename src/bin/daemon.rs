@@ -1,137 +1,41 @@
-#![allow(unused_imports)]
+use std::env;
+use std::fs;
+use std::path::Path;
+use std::process;
 
-use ctrlc;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::io::{self, BufRead, BufReader, BufWriter, Write};
-use std::os::unix::net::{UnixListener, UnixStream};
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
-use std::{env, fs};
-use sysinfo::{
-    Components, Disks, Networks, Pid, Process, ProcessesToUpdate, System,
-};
+use clap::Parser;
+use log::info;
+use pm::{server, DEFAULT_PORT};
 
-/* enum Req {
-    Start { name: String, cmd: String },
-    Stop { name: String },
-} */
+#[tokio::main]
+async fn main() -> pm::Result<()> {
+    env_logger::init();
 
-fn main() -> io::Result<()> {
-    let dir = env::temp_dir().join("bun");
-    let endpoint = dir.join("pm.sock");
-    let listener = UnixListener::bind(&endpoint)?;
+    let path = Path::new(env!("HOME")).join(".pm");
+    env::set_current_dir(&path)?;
 
-    println!("Listening on {:?}", endpoint);
+    // log current pid and other info
+    info!("Daemon started with pid: {}", process::id());
+    info!("Working directory: {:?}", path);
 
-    let mut manager = ProcessManager::new(dir);
+    /* let stdout = fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("pm.out")?;
 
-    loop {
-        let (stream, _) = listener.accept()?;
-        let mut reader = BufReader::new(&stream);
-        let mut buffer = String::new();
+    let stderr = fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("pm.err")?; */
 
-        match reader.read_line(&mut buffer) {
-            Ok(0) => {
-                eprintln!("EOF");
-            }
-            Ok(_) => match serde_json::from_str::<Action>(&buffer) {
-                Ok(action) => {
-                    println!("received: {:?}", action);
-                    match action {
-                        Action::Start { cmd, name } => {
-                            manager.start(cmd, name)?
-                        }
-                        Action::Stop { name } => manager.stop(&name)?,
-                        _ => unimplemented!(),
-                    }
-                }
-                Err(e) => {
-                    eprintln!("invalid request format: {}", e);
-                }
-            },
-            Err(e) => {
-                eprintln!("error reading from socket: {}", e);
-            }
-        }
+    let cli = Cli::parse();
 
-        buffer.clear();
-
-        // reader.read_line(&mut buffer)?;
-        /* let line = &buffer.trim();
-
-        match serde_json::from_str::<Action>(line) {
-            Err(_) => {
-                eprintln!("Invalid request format {line}")
-            }
-            Ok(action) => {
-                println!("Received: {:?}", action);
-                match action {
-                    Action::Start { cmd, name } => manager.start(cmd, name)?,
-                    _ => panic!("Not implemented"),
-                }
-            }
-        } */
-
-        /* match serde_json::from_str(&buffer.trim()) {
-            Ok(Start { name, cmd }) => {
-                println!("Starting: {} ({})", name, cmd);
-            }
-            Err(e) => {
-                eprintln!("Invalid request: {}", e);
-            }
-        } */
-    }
+    server::run(cli.port).await
 }
 
-struct ProcessManager {
-    pub dir: PathBuf,
-    pub sys: System,
-    pub processes: HashMap<String, Pid>,
-}
-
-impl ProcessManager {
-    pub fn new(dir: PathBuf) -> Self {
-        ProcessManager {
-            dir,
-            sys: System::new(),
-            processes: HashMap::new(),
-        }
-    }
-
-    pub fn get(&mut self, name: &str) -> Option<&Process> {
-        let pid = self.processes.get(name)?;
-        self.sys.process(*pid)
-    }
-
-    pub fn set(&mut self, name: impl Into<String>, id: u32) -> io::Result<()> {
-        self.processes.insert(name.into(), Pid::from(id as usize));
-        fs::write(&self.dir, id.to_string())?;
-        Ok(())
-    }
-
-    pub fn start(
-        &mut self,
-        cmd: String,
-        _name: Option<String>,
-    ) -> io::Result<()> {
-        let mut command = Command::new("bun");
-
-        command
-            .args(["run", &cmd])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null());
-
-        let child = command.spawn()?;
-        self.set("test", child.id())?;
-
-        Ok(())
-    }
-
-    pub fn stop(&mut self, name: &str) -> io::Result<()> {
-        let pid = self.processes.get(name).unwrap();
-        Command::new("kill").arg(pid.to_string()).spawn()?.wait()?;
-
-        Ok(())
-    }
+#[derive(Parser)]
+#[command(name = "pm-daemon", version)]
+struct Cli {
+    #[arg(long, short, default_value_t = DEFAULT_PORT)]
+    port: u16,
 }
