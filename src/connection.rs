@@ -9,6 +9,8 @@ pub struct Connection {
     buffer: Vec<u8>,
 }
 
+// const x: i32 = "hello";
+
 impl Connection {
     pub fn new(stream: TcpStream) -> Connection {
         Connection {
@@ -30,7 +32,7 @@ impl Connection {
             _ => {
                 debug!("{}", String::from_utf8_lossy(&self.buffer));
 
-                match serde_json::from_slice(&self.buffer) {
+                match Message::from_bytes(&self.buffer) {
                     Ok(msg) => Ok(Some(msg)),
                     Err(e) => {
                         error!("Failed to parse message: {:?}", e);
@@ -41,13 +43,12 @@ impl Connection {
         }
     }
 
-    pub async fn write<T: Into<Message>>(
-        &mut self,
-        msg: T,
-    ) -> crate::Result<()> {
-        let mut msg = serde_json::to_vec(&msg.into())?;
-        msg.push(b'\n');
-        self.stream.write_all(&msg).await?;
+    pub async fn write<T>(&mut self, msg: T) -> crate::Result<()>
+    where
+        T: Into<Message>,
+    {
+        let msg: Message = msg.into();
+        self.stream.write_all(&msg.to_bytes()?).await?;
         self.stream.flush().await?;
         println!("Sent: {:?}", msg);
         Ok(())

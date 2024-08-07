@@ -2,6 +2,7 @@ use super::{Command, Executor};
 use crate::{Connection, Message};
 
 use clap::Args;
+use log::debug;
 use serde::{Deserialize, Serialize};
 
 #[derive(Args, Serialize, Deserialize, Debug)]
@@ -22,7 +23,7 @@ impl Start {
 
 impl Executor for Start {
     async fn execute(&self, _conn: &mut Connection) -> crate::Result<()> {
-        println!("Starting: {} ({})", self.name, self.process);
+        debug!("Starting: {} ({})", self.name, self.process);
         Ok(())
     }
 }

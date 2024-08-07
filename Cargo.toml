@@ -1,6 +1,7 @@
 [package]
 name = "pm"
 version = "0.1.0"
+authors = ["Jordi Calafat <https://jocades.dev>"]
 edition = "2021"
 default-run = "pm"
 

@@ -2,17 +2,18 @@ mod client;
 pub use client::Client;
 
 mod message;
-pub use message::{Message, Response};
+use message::{Message, Response};
 
 mod connection;
-pub use connection::Connection;
+use connection::Connection;
 
 pub mod server;
 
 mod cmd;
 pub use cmd::Command;
 
-pub const DEFAULT_PORT: u16 = 8421;
-
 mod error;
 pub use error::{Error, Result};
+
+pub const LOCAL_HOST: &'static str = "127.0.0.1";
+pub const DEFAULT_PORT: u16 = 8421;

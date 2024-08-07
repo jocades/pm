@@ -7,6 +7,9 @@ pub struct Client {
     conn: Connection,
 }
 
+// const x: i32 = "hello";
+//
+
 impl Client {
     pub async fn connect<T: ToSocketAddrs>(addr: T) -> crate::Result<Client> {
         println!("Connecting...");
@@ -23,7 +26,6 @@ impl Client {
         // }
         // let cmd: Command = subcmd.into();
         // self.conn.write(subcmd).await?;
-
         Ok(())
     }
 

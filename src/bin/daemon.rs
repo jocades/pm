@@ -1,11 +1,11 @@
+use pm::{server, DEFAULT_PORT};
+
+use clap::Parser;
+use log::info;
 use std::env;
 use std::fs;
 use std::path::Path;
 use std::process;
-
-use clap::Parser;
-use log::info;
-use pm::{server, DEFAULT_PORT};
 
 #[tokio::main]
 async fn main() -> pm::Result<()> {
@@ -36,6 +36,6 @@ async fn main() -> pm::Result<()> {
 #[derive(Parser)]
 #[command(name = "pm-daemon", version)]
 struct Cli {
-    #[arg(long, short, default_value_t = DEFAULT_PORT)]
+    #[arg(long, default_value_t = DEFAULT_PORT)]
     port: u16,
 }

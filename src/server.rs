@@ -1,4 +1,4 @@
-use crate::Connection;
+use crate::{Connection, LOCAL_HOST};
 
 use log::info;
 use std::collections::HashMap;
@@ -8,7 +8,7 @@ use tokio::net::{TcpListener, TcpStream};
 type Db = Arc<Mutex<HashMap<String, u32>>>;
 
 pub async fn run(port: u16) -> crate::Result<()> {
-    let listener = TcpListener::bind(format!("127.0.0.1:{port}")).await?;
+    let listener = TcpListener::bind(format!("{LOCAL_HOST}:{port}")).await?;
 
     info!("Listening on port {port}");
 
