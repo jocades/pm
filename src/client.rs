@@ -1,6 +1,8 @@
 use crate::cmd::{Ping, Start};
+use crate::message::{Message, Response};
 use crate::{Command, Connection};
 
+use log::info;
 use tokio::net::{TcpStream, ToSocketAddrs};
 
 pub struct Client {
@@ -19,13 +21,20 @@ impl Client {
     }
 
     pub async fn ping(&mut self) -> crate::Result<()> {
-        // let subcmd = Ping::new(Some("hello?"));
-        // let cmd = Command::Ping(Ping::new(Some("hello?")));
-        // if let Command::Ping(subcmd) = cmd {
-        //     subcmd.execute(&mut self.conn).await?;
-        // }
-        // let cmd: Command = subcmd.into();
-        // self.conn.write(subcmd).await?;
+        let cmd = Command::from(Ping::new(Some("hello")));
+        self.conn.write(cmd).await?;
+
+        let result = self.conn.read().await?;
+
+        println!("{result:?}");
+
+        let Some(Message::Response(res)) = result else {
+            println!("Client closed connection");
+            return Ok(());
+        };
+
+        println!("Reponse: {:?}", res);
+
         Ok(())
     }
 

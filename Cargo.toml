@@ -10,8 +10,8 @@ name = "pm"
 path = "src/bin/cli.rs"
 
 [[bin]]
-name = "pm-daemon"
-path = "src/bin/daemon.rs"
+name = "pm-server"
+path = "src/bin/server.rs"
 
 [dependencies]
 clap = { version = "4.5.13", features = ["derive"] }

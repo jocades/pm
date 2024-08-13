@@ -1,10 +1,12 @@
 use pm::{Client, Command, DEFAULT_PORT, LOCAL_HOST};
 
 use clap::Parser;
-use log::debug;
+use log::{debug, info};
 
 #[tokio::main]
 async fn main() -> pm::Result<()> {
+    env_logger::init();
+
     let cli = Cli::parse();
 
     // cmd
@@ -16,7 +18,10 @@ async fn main() -> pm::Result<()> {
 
     use Command::*;
     match cli.command {
-        Ping(args) => debug!("Pong: {args:?}"),
+        Ping(args) => {
+            info!("{args:?}");
+            client.ping().await?;
+        }
         Start(args) => {
             debug!("Starting: {args:?}");
         }

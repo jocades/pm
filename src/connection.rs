@@ -15,7 +15,7 @@ impl Connection {
     pub fn new(stream: TcpStream) -> Connection {
         Connection {
             stream: BufStream::new(stream),
-            buffer: vec![0; 1024], // 1kb buffer for read operations
+            buffer: vec![], // 1kb buffer for read operations
         }
     }
 
@@ -30,12 +30,13 @@ impl Connection {
             }
             0 => Ok(None), // The remote closed the connection.
             _ => {
-                debug!("{}", String::from_utf8_lossy(&self.buffer));
+                println!("Received: {:?}", self.buffer);
+                println!("{}", String::from_utf8_lossy(&self.buffer));
 
                 match Message::from_bytes(&self.buffer) {
                     Ok(msg) => Ok(Some(msg)),
                     Err(e) => {
-                        error!("Failed to parse message: {:?}", e);
+                        eprintln!("Failed to parse message: {:?}", e);
                         Ok(None)
                     }
                 }
@@ -47,10 +48,10 @@ impl Connection {
     where
         T: Into<Message>,
     {
-        let msg: Message = msg.into();
+        let mut msg: Message = msg.into();
+        println!("Sent: {:?}", msg);
         self.stream.write_all(&msg.to_bytes()?).await?;
         self.stream.flush().await?;
-        println!("Sent: {:?}", msg);
         Ok(())
     }
 }

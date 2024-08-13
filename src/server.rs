@@ -1,4 +1,6 @@
-use crate::{Connection, LOCAL_HOST};
+use crate::cmd::Executor;
+use crate::message::Message;
+use crate::{Command, Connection, LOCAL_HOST};
 
 use log::info;
 use std::collections::HashMap;
@@ -25,7 +27,12 @@ pub async fn run(port: u16) -> crate::Result<()> {
 
 async fn process(stream: TcpStream, _db: Db) -> crate::Result<()> {
     let mut conn = Connection::new(stream);
-    let _msg = conn.read().await?;
-    // println!("Received: {:?}", msg);
-    Ok(())
+    let msg = conn.read().await?;
+
+    let Some(Message::Request(cmd)) = msg else {
+        info!("Client closed connection");
+        return Ok(());
+    };
+
+    cmd.execute(&mut conn).await
 }
