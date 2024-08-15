@@ -30,16 +30,21 @@ impl Connection {
             }
             0 => Ok(None), // The remote closed the connection.
             _ => {
-                println!("Received: {:?}", self.buffer);
-                println!("{}", String::from_utf8_lossy(&self.buffer));
+                debug!("Received (bytes): {:?}", self.buffer);
+                debug!(
+                    "Received (raw): {:?}",
+                    String::from_utf8_lossy(&self.buffer)
+                );
 
-                match Message::from_bytes(&self.buffer) {
-                    Ok(msg) => Ok(Some(msg)),
-                    Err(e) => {
-                        eprintln!("Failed to parse message: {:?}", e);
-                        Ok(None)
-                    }
-                }
+                Message::from_bytes(&self.buffer)
+                    .map(|msg| {
+                        debug!("Received (parsed): {:?}", msg);
+                        Some(msg)
+                    })
+                    .map_err(|e| {
+                        error!("Failed to parse message: {:?}", e);
+                        e.into()
+                    })
             }
         }
     }
@@ -48,8 +53,8 @@ impl Connection {
     where
         T: Into<Message>,
     {
-        let mut msg: Message = msg.into();
-        println!("Sent: {:?}", msg);
+        let msg: Message = msg.into();
+        debug!("Sent: {:?}", msg);
         self.stream.write_all(&msg.to_bytes()?).await?;
         self.stream.flush().await?;
         Ok(())

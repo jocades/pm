@@ -3,7 +3,6 @@ use pm::{server, DEFAULT_PORT};
 use clap::Parser;
 use log::info;
 use std::env;
-use std::fs;
 use std::path::Path;
 use std::process;
 
@@ -15,8 +14,8 @@ async fn main() -> pm::Result<()> {
     env::set_current_dir(&path)?;
 
     // log current pid and other info
-    info!("Daemon started with pid: {}", process::id());
-    info!("Working directory: {:?}", path);
+    info!("Server started with pid: {}", process::id());
+    info!("Working directory: {path:?}");
 
     /* let stdout = fs::OpenOptions::new()
         .create(true)
@@ -34,7 +33,7 @@ async fn main() -> pm::Result<()> {
 }
 
 #[derive(Parser)]
-#[command(name = "pm-daemon", version)]
+#[command(name = "pm-server", version)]
 struct Cli {
     #[arg(long, default_value_t = DEFAULT_PORT)]
     port: u16,

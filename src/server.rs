@@ -1,8 +1,8 @@
 use crate::cmd::Executor;
-use crate::message::Message;
-use crate::{Command, Connection, LOCAL_HOST};
+use crate::message::{Message, Response};
+use crate::{Connection, Error, LOCAL_HOST};
 
-use log::info;
+use log::{error, info, warn};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tokio::net::{TcpListener, TcpStream};
@@ -21,18 +21,39 @@ pub async fn run(port: u16) -> crate::Result<()> {
         let db = db.clone();
 
         info!("Accepted {addr}");
-        tokio::spawn(async move { process(stream, db).await });
+        tokio::spawn(async move {
+            if let Err(e) = handle(stream, db).await {
+                error!("Connection error: {e}");
+            }
+        });
     }
 }
 
-async fn process(stream: TcpStream, _db: Db) -> crate::Result<()> {
+async fn handle(stream: TcpStream, _db: Db) -> crate::Result<()> {
     let mut conn = Connection::new(stream);
-    let msg = conn.read().await?;
 
-    let Some(Message::Request(cmd)) = msg else {
-        info!("Client closed connection");
-        return Ok(());
-    };
-
-    cmd.execute(&mut conn).await
+    match conn.read().await {
+        Ok(msg) => match msg {
+            None => Ok(()),
+            Some(Message::Request(cmd)) => cmd.execute(&mut conn).await,
+            Some(msg) => {
+                let emsg = "protocol error; unexpected message";
+                let res = Response::Error(emsg.to_string());
+                conn.write(res).await?;
+                Err(format!("{emsg}: {msg:?}").into())
+            }
+        },
+        Err(e) => match e {
+            Error::Parse(e) => {
+                let res = Response::Error(e.to_string());
+                conn.write(res).await?;
+                Err(e.into())
+            }
+            e => {
+                let res = Response::Error(format!("internal server error"));
+                conn.write(res).await?;
+                Err(e)
+            }
+        },
+    }
 }

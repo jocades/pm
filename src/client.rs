@@ -2,15 +2,12 @@ use crate::cmd::{Ping, Start};
 use crate::message::{Message, Response};
 use crate::{Command, Connection};
 
-use log::info;
+use std::io::{Error, ErrorKind};
 use tokio::net::{TcpStream, ToSocketAddrs};
 
 pub struct Client {
-    conn: Connection,
+    pub conn: Connection,
 }
-
-// const x: i32 = "hello";
-//
 
 impl Client {
     pub async fn connect<T: ToSocketAddrs>(addr: T) -> crate::Result<Client> {
@@ -20,22 +17,50 @@ impl Client {
         Ok(Client { conn })
     }
 
-    pub async fn ping(&mut self) -> crate::Result<()> {
+    pub async fn ping(&mut self) -> crate::Result<Response> {
         let cmd = Command::from(Ping::new(Some("hello")));
         self.conn.write(cmd).await?;
 
-        let result = self.conn.read().await?;
+        self.read_response().await
 
-        println!("{result:?}");
+        // match res {
+        //     Response::Ok(val) => {
+        //         println!("{val}")
+        //     }
+        //     Response::Error(val) => {
+        //         println!("{val}")
+        //     }
+        // }
 
-        let Some(Message::Response(res)) = result else {
-            println!("Client closed connection");
-            return Ok(());
-        };
+        // println!("Reponse: {:?}", res);
+        //
+        // Ok(())
+    }
 
-        println!("Reponse: {:?}", res);
+    pub async fn read_response(&mut self) -> crate::Result<Response> {
+        match self.conn.read().await? {
+            Some(Message::Response(res)) => Ok(res),
+            None => {
+                // Receiving `None` here indicates the server has closed the
+                // connection without sending a response. This is unexpected
+                // and is represented as a "connection reset by peer" error.
+                let err = Error::new(
+                    ErrorKind::ConnectionReset,
+                    "connection reset by server",
+                );
 
-        Ok(())
+                Err(err.into())
+            }
+            _ => {
+                // Receiving a message other than a response is unexpected.
+                let err = Error::new(
+                    ErrorKind::InvalidData,
+                    "unexpected message from server",
+                );
+
+                Err(err.into())
+            }
+        }
     }
 
     /* pub async fn start(

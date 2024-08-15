@@ -21,19 +21,11 @@ impl Message {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, From)]
-pub struct Response {
-    pub ok: bool,
-    pub msg: String,
-}
-
-impl Response {
-    pub fn new<T: Into<String>>(ok: bool, msg: T) -> Response {
-        Response {
-            ok,
-            msg: msg.into(),
-        }
-    }
+#[derive(Serialize, Deserialize, Debug)]
+pub enum Response {
+    // TODO: Use Ok inner variants for different command responses
+    Ok(String),
+    Error(String),
 }
 
 #[cfg(test)]
@@ -56,7 +48,7 @@ mod tests {
 
     #[test]
     fn response() {
-        let res = Response::new(true, "pong");
+        let res = Response::Ok("pong".into());
         let msg = accept(res);
 
         println!("{msg:?}");
@@ -65,7 +57,7 @@ mod tests {
 
     #[test]
     fn request_from_bytes() -> crate::Result<()> {
-        let out_msg: Message = Command::from(Ping::new(Some("hello"))).into();
+        let out_msg = accept(Command::from(Ping::new(Some("hello"))));
         let bytes = out_msg.to_bytes()?;
 
         let in_msg = Message::from_bytes(&bytes)?;
@@ -75,7 +67,8 @@ mod tests {
 
     #[test]
     fn response_from_bytes() -> crate::Result<()> {
-        let msg: Message = Response::new(true, "pong").into();
+        // let msg: Message = Response::new(true, "pong").into();
+        let msg = accept(Response::Ok("pong".into()));
         let bytes = msg.to_bytes()?;
 
         let in_msg = Message::from_bytes(&bytes)?;
@@ -85,7 +78,7 @@ mod tests {
 
     #[test]
     fn request_to_bytes() -> crate::Result<()> {
-        let out_msg: Message = Command::from(Ping::new(Some("hello"))).into();
+        let out_msg = accept(Command::from(Ping::new(Some("hello"))));
         let bytes = out_msg.to_bytes()?;
 
         let in_msg = Message::from_bytes(&bytes)?;
@@ -95,7 +88,7 @@ mod tests {
 
     #[test]
     fn response_to_bytes() -> crate::Result<()> {
-        let msg: Message = Response::new(true, "pong").into();
+        let msg = accept(Response::Ok("pong".into()));
         let bytes = msg.to_bytes()?;
 
         let in_msg = Message::from_bytes(&bytes)?;

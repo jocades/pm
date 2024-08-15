@@ -2,7 +2,7 @@ mod client;
 pub use client::Client;
 
 mod message;
-use message::{Message, Response};
+pub use message::{Message, Response};
 
 mod connection;
 use connection::Connection;

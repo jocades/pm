@@ -19,8 +19,7 @@ impl Ping {
 
 impl Executor for Ping {
     async fn execute(&self, conn: &mut Connection) -> crate::Result<()> {
-        println!("Pong");
-        let res = Response::new(true, "Pong");
+        let res = Response::Ok("Pong".into());
         conn.write(res).await
     }
 }
