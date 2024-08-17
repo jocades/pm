@@ -10,22 +10,8 @@ use std::process;
 async fn main() -> pm::Result<()> {
     env_logger::init();
 
-    let path = Path::new(env!("HOME")).join(".pm");
-    env::set_current_dir(&path)?;
-
-    // log current pid and other info
-    info!("Server started with pid: {}", process::id());
-    info!("Working directory: {path:?}");
-
-    /* let stdout = fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open("pm.out")?;
-
-    let stderr = fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open("pm.err")?; */
+    let wd = Path::new(env!("HOME")).join(".pm");
+    env::set_var("PM_DIR", &wd);
 
     let cli = Cli::parse();
 

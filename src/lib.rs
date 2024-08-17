@@ -5,12 +5,15 @@ mod message;
 pub use message::{Message, Response};
 
 mod connection;
-use connection::Connection;
+pub use connection::Connection;
 
 pub mod server;
 
 mod cmd;
 pub use cmd::Command;
+
+mod db;
+use db::Db;
 
 mod error;
 pub use error::{Error, Result};

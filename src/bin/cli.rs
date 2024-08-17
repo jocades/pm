@@ -3,7 +3,7 @@ use pm::{Client, Command, DEFAULT_PORT, LOCAL_HOST};
 use clap::Parser;
 use log::{debug, info};
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> pm::Result<()> {
     env_logger::init();
 
@@ -20,10 +20,11 @@ async fn main() -> pm::Result<()> {
     match cli.command {
         Ping(args) => {
             info!("{args:?}");
-            client.ping().await?;
+            client.ping(args.msg).await?;
         }
         Start(args) => {
-            debug!("Starting: {args:?}");
+            info!("{args:?}");
+            client.start(args.process, args.name).await?;
         }
         _ => unimplemented!(),
     }

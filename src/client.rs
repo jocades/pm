@@ -17,24 +17,33 @@ impl Client {
         Ok(Client { conn })
     }
 
-    pub async fn ping(&mut self) -> crate::Result<Response> {
-        let cmd = Command::from(Ping::new(Some("hello")));
+    pub async fn ping(&mut self, msg: Option<String>) -> crate::Result<()> {
+        let cmd = Command::from(Ping::new(msg));
         self.conn.write(cmd).await?;
 
-        self.read_response().await
+        // self.read_response().await.map()
+        match self.read_response().await? {
+            Response::Ok(msg) => println!("Ok: {msg}"),
+            Response::Error(msg) => println!("Error: {msg}"),
+        };
 
-        // match res {
-        //     Response::Ok(val) => {
-        //         println!("{val}")
-        //     }
-        //     Response::Error(val) => {
-        //         println!("{val}")
-        //     }
-        // }
+        Ok(())
+    }
 
-        // println!("Reponse: {:?}", res);
-        //
-        // Ok(())
+    pub async fn start(
+        &mut self,
+        process: String,
+        name: Option<String>,
+    ) -> crate::Result<()> {
+        let cmd = Command::from(Start::new(process, name));
+        self.conn.write(cmd).await?;
+
+        match self.read_response().await? {
+            Response::Ok(msg) => println!("Ok: {msg}"),
+            Response::Error(msg) => println!("Error: {msg}"),
+        };
+
+        Ok(())
     }
 
     pub async fn read_response(&mut self) -> crate::Result<Response> {
@@ -62,14 +71,4 @@ impl Client {
             }
         }
     }
-
-    /* pub async fn start(
-        &mut self,
-        process: &str,
-        name: Option<&str>,
-    ) -> crate::Result<()> {
-        // let cmd = Start::new(process, name);
-        let cmd = Start::new(process, name);
-        self.conn.send(cmd).await?;
-    } */
 }

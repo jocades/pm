@@ -8,11 +8,7 @@ async fn main() -> Result<()> {
     }
 
     let mut client = Client::connect("127.0.0.1:8421").await?;
-
-    match client.ping().await? {
-        pm::Response::Ok(msg) => println!("{msg}"),
-        pm::Response::Error(msg) => println!("{msg}"),
-    }
+    client.ping(None).await?;
 
     Ok(())
 }
