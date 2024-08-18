@@ -1,4 +1,4 @@
-use log::{debug, error, info};
+use log::{debug, error};
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufStream};
 use tokio::net::TcpStream;
@@ -17,7 +17,7 @@ impl Connection {
     }
 
     /// Only returns `None` if the remote closed the connection.
-    pub async fn read_message<T>(&mut self) -> crate::Result<Option<T>>
+    pub async fn read<T>(&mut self) -> crate::Result<Option<T>>
     where
         T: for<'de> Deserialize<'de>,
     {
@@ -32,10 +32,7 @@ impl Connection {
                 // sending a frame.
                 Err("connection closed by peer".into())
             }
-            0 => {
-                info!("Client closed connection");
-                Ok(None)
-            } // client closed the connection;
+            0 => Ok(None), // connection closed
             _ => {
                 debug!("Received (bytes): {:?}", self.buffer);
                 debug!(
@@ -53,7 +50,7 @@ impl Connection {
         }
     }
 
-    pub async fn write_message<T>(&mut self, msg: &T) -> crate::Result<()>
+    pub async fn write<T>(&mut self, msg: &T) -> crate::Result<()>
     where
         T: Serialize,
     {

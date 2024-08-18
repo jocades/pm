@@ -1,23 +1,20 @@
-use super::Executor;
-use crate::db::Db;
+use super::{Executor, State};
+use crate::server::Response;
+use crate::state::ProcessInfo;
 use crate::Connection;
 
 use clap::Args;
 use log::debug;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use std::fs::File;
-use std::io::Write;
+use std::fs::{self, File};
 use std::process::{Command, Stdio};
-use std::{env, fs};
-use sysinfo::Pid;
 
-/// $ pm start server.js --name api
-/// $ pm start "bun run server.js" --name api
+// $ pm start server.js --name api
+// $ pm start "bun run server.js" --name api
 
 #[derive(Args, Serialize, Deserialize, Debug)]
 pub struct Start {
-    pub process: String,
+    pub task: String,
     #[arg(long)]
     pub name: Option<String>,
     // #[arg(short, long)]
@@ -25,69 +22,60 @@ pub struct Start {
 }
 
 impl Start {
-    pub fn new<T: Into<String>>(process: T, name: Option<T>) -> Start {
+    pub fn new<T: Into<String>>(task: T, name: Option<T>) -> Start {
         Start {
-            process: process.into(),
+            task: task.into(),
             name: name.map(|n| n.into()),
         }
     }
 }
 
-use std::path::PathBuf;
-use std::process;
-
-pub fn get_dir() -> PathBuf {
-    match env::var("PM_DIR") {
-        Ok(dir) => PathBuf::from(dir),
-        Err(_) => {
-            eprintln!("Error: $PM_DIR not found");
-            process::exit(1);
-        }
-    }
-}
-
 impl Executor for Start {
-    async fn execute(self, db: Db, conn: &mut Connection) -> crate::Result<()> {
+    async fn execute(self, s: State, c: &mut Connection) -> crate::Result<()> {
         let name = self.name.unwrap_or_else(|| "TEST".into());
 
-        let path = get_dir().join(&name);
-        fs::create_dir_all(&path)?;
+        let data = {
+            let mut s = s.lock().unwrap();
 
-        let stdout = File::create(path.join("pm.out"))?;
-        let stderr = File::create(path.join("pm.err"))?;
+            let pstdout = s.path.join(format!("{name}.log"));
 
-        let mut command = Command::new("bun");
+            let fstdout = File::create(&pstdout)?;
+            let fstderr = fstdout.try_clone()?;
 
-        command
-            .args(["run", self.process.as_str()])
-            .stdout(Stdio::from(stdout))
-            .stderr(Stdio::from(stderr));
+            let mut command = Command::new("bun");
 
-        debug!("Starting: {} ({})", name, self.process);
+            command
+                .args(["run", self.task.as_str()])
+                .stdout(Stdio::from(fstdout))
+                .stderr(Stdio::from(fstderr));
 
-        let child = command.spawn()?;
+            debug!("Starting: {} ({})", name, self.task);
 
-        let pid = Pid::from(child.id() as usize);
-        println!("PID: {pid}");
+            let child = command.spawn()?;
 
-        writeln!(File::create(path.join("pid"))?, "{pid}")?;
+            let pid = child.id();
+            debug!("PID: {pid}");
 
-        {
-            let mut db = db.lock().unwrap();
-            db.insert(name.clone(), pid);
-        }
+            fs::write(s.path.join(format!("{name}.pid")), pid.to_string())?;
 
-        debug!("{db:?}");
+            let info = ProcessInfo {
+                name: name.clone(),
+                pid,
+                args: Vec::new(),
+                command: self.task,
+                log_file: pstdout,
+                cpu_usage: 0.00,
+                mem_usage: 0,
+            };
 
-        let response = json!({
-            "status": "ok",
-            "data": {
-                "pid": pid.as_u32(),
-                "name": name
-            }
-        });
+            s.db.insert(name, info.clone());
 
-        conn.write_message(&response).await?;
+            info
+        };
+
+        debug!("{s:?}");
+
+        c.write(&Response::ok(data)).await?;
         Ok(())
     }
 }

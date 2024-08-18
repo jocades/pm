@@ -13,10 +13,6 @@ path = "src/bin/cli.rs"
 name = "pm-server"
 path = "src/bin/server.rs"
 
-[[bin]]
-name = "proc"
-path = "src/bin/proc.rs"
-
 [dependencies]
 clap = { version = "4.5.13", features = ["derive"] }
 tokio = { version = "1.39.2", features = ["full"] }

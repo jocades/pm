@@ -1,4 +1,4 @@
-use crate::Connection;
+use crate::{server::Response, Connection};
 
 use clap::Args;
 use log::debug;
@@ -20,11 +20,9 @@ impl Ping {
 
 impl Ping {
     pub async fn execute(self, conn: &mut Connection) -> crate::Result<()> {
-        let response = json!({
-            "status": "ok",
-            "data": self.msg.unwrap_or_else(|| "Pong!".into()),
-        });
+        let response = Response::ok(self.msg.unwrap_or_else(|| "Pong!".into()));
+
         debug!("{response:?}");
-        conn.write_message(&response).await
+        conn.write(&response).await
     }
 }

@@ -9,7 +9,8 @@ pub mod server;
 mod cmd;
 pub use cmd::Command;
 
-mod db;
+mod state;
+use state::State;
 
 mod error;
 pub use error::{Error, Result};

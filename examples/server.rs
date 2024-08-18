@@ -22,7 +22,7 @@ pub async fn main() -> pm::Result<()> {
         info!("Accepted {addr}");
         tokio::spawn(async move {
             let mut conn = pm::Connection::new(stream);
-            while let Some(msg) = conn.read_message::<Value>().await.unwrap() {
+            while let Some(msg) = conn.read::<Value>().await.unwrap() {
                 println!("Received: {msg}");
                 // let name = msg["name"].as_str().unwrap();
                 // println!("Name: {name}");
@@ -32,7 +32,7 @@ pub async fn main() -> pm::Result<()> {
                     "data": msg,
                 });
 
-                conn.write_message(&response).await.unwrap();
+                conn.write(&response).await.unwrap();
             }
             /* // let (mut rd, mut wr) = stream.split();
             let mut stream = BufStream::new(stream);

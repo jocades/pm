@@ -1,7 +1,8 @@
-use crate::cmd::{Ping, Start};
+use crate::cmd::{Ping, Start, Stop};
+use crate::server::Response;
+use crate::state::ProcessInfo;
 use crate::{Command, Connection};
 
-use serde_json::Value;
 use std::io::{Error, ErrorKind};
 use tokio::net::{TcpStream, ToSocketAddrs};
 
@@ -11,7 +12,6 @@ pub struct Client {
 
 impl Client {
     pub async fn connect<T: ToSocketAddrs>(addr: T) -> crate::Result<Client> {
-        println!("Connecting...");
         let stream = TcpStream::connect(addr).await?;
         let conn = Connection::new(stream);
         Ok(Client { conn })
@@ -19,31 +19,44 @@ impl Client {
 
     pub async fn ping(&mut self, msg: Option<&str>) -> crate::Result<()> {
         let cmd = Command::from(Ping::new(msg));
-        self.conn.write_message(&cmd).await?;
+        self.conn.write(&cmd).await?;
 
-        let response = self.read_response().await?;
-        println!("{}", response["data"]);
+        let response = self.read_response::<String>().await?;
+        println!("{:?}", response);
 
         Ok(())
     }
 
     pub async fn start(
         &mut self,
-        process: &str,
+        task: &str,
         name: Option<&str>,
     ) -> crate::Result<()> {
-        let cmd = Command::from(Start::new(process, name));
-        self.conn.write_message(&cmd).await?;
+        let cmd = Command::from(Start::new(task, name));
+        self.conn.write(&cmd).await?;
 
-        let response = self.read_response().await?;
-        println!("{}", response);
+        let res = self.read_response::<ProcessInfo>().await?;
+        println!("{:?}", res);
 
         Ok(())
     }
 
-    pub async fn read_response(&mut self) -> crate::Result<Value> {
-        match self.conn.read_message().await? {
-            Some(msg) => Ok(msg),
+    pub async fn stop(&mut self, name: &str) -> crate::Result<()> {
+        let cmd = Command::from(Stop::new(name));
+        self.conn.write(&cmd).await?;
+
+        let res = self.read_response::<String>().await?;
+        println!("{:?}", res);
+
+        Ok(())
+    }
+
+    pub async fn read_response<T>(&mut self) -> crate::Result<Response<T>>
+    where
+        T: for<'de> serde::Deserialize<'de>,
+    {
+        /* match self.conn.read().await? {
+            Some(res) => Ok(res),
             None => {
                 // Receiving `None` here indicates the server has closed the
                 // connection without sending a response. This is unexpected
@@ -55,6 +68,15 @@ impl Client {
 
                 Err(err.into())
             }
-        }
+        } */
+
+        self.conn.read().await?.ok_or_else(|| {
+            let err = Error::new(
+                ErrorKind::ConnectionReset,
+                "connection reset by server",
+            );
+
+            err.into()
+        })
     }
 }
