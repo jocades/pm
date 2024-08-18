@@ -1,10 +1,11 @@
 use super::Executor;
 use crate::db::Db;
-use crate::{Connection, Response};
+use crate::Connection;
 
 use clap::Args;
 use log::debug;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::fs::File;
 use std::io::Write;
 use std::process::{Command, Stdio};
@@ -73,11 +74,20 @@ impl Executor for Start {
 
         {
             let mut db = db.lock().unwrap();
-            db.insert(name, pid);
+            db.insert(name.clone(), pid);
         }
 
         debug!("{db:?}");
 
-        conn.write(Response::Ok(pid.to_string())).await
+        let response = json!({
+            "status": "ok",
+            "data": {
+                "pid": pid.as_u32(),
+                "name": name
+            }
+        });
+
+        conn.write_message(&response).await?;
+        Ok(())
     }
 }

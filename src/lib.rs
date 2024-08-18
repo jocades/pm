@@ -1,9 +1,6 @@
 mod client;
 pub use client::Client;
 
-mod message;
-pub use message::{Message, Response};
-
 mod connection;
 pub use connection::Connection;
 
@@ -13,7 +10,6 @@ mod cmd;
 pub use cmd::Command;
 
 mod db;
-use db::Db;
 
 mod error;
 pub use error::{Error, Result};

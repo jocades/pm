@@ -1,10 +1,8 @@
 use pm::{server, DEFAULT_PORT};
 
 use clap::Parser;
-use log::info;
 use std::env;
 use std::path::Path;
-use std::process;
 
 #[tokio::main]
 async fn main() -> pm::Result<()> {

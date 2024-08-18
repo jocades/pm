@@ -1,13 +1,12 @@
 use crate::cmd::Executor;
 use crate::db::Db;
-use crate::message::{Message, Response};
-use crate::{Connection, Error, LOCAL_HOST};
+use crate::{Command, Connection, Error, LOCAL_HOST};
 
-use log::{error, info, warn};
+use log::{error, info};
+use serde_json::json;
 use std::collections::HashMap;
+use std::env;
 use std::sync::{Arc, Mutex};
-use std::{env, fs};
-use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufStream};
 use tokio::net::{TcpListener, TcpStream};
 
 pub async fn run(port: u16) -> crate::Result<()> {
@@ -25,30 +24,23 @@ pub async fn run(port: u16) -> crate::Result<()> {
 
         info!("Accepted {addr}");
         tokio::spawn(async move {
-            // let (mut rd, mut wr) = stream.split();
-            let mut stream = BufStream::new(stream);
-            let mut buffer = String::new();
-
-            loop {
-                match stream.read_line(&mut buffer).await {
-                    Ok(0) => break, // client closed the connection;
-                    Ok(_) => {
-                        println!("Received: {}", buffer);
-                        stream
-                            .write_all(format!("Echo: {buffer}").as_bytes())
-                            .await
-                            .unwrap();
-                        stream.flush().await.unwrap();
-                    }
-                    Err(e) => {
-                        eprintln!("Connection errror: {e}")
-                    }
-                }
+            if let Err(e) = handle(stream, db).await {
+                error!("Connection error: {e}");
             }
 
-            // if let Err(e) = handle(stream, db).await {
-            //     error!("Application error: {e}");
-            // }
+            /* while let Some(msg) = conn.read_message::<Command>().await.unwrap()
+            {
+                println!("Received: {msg:?}");
+                // let name = msg["name"].as_str().unwrap();
+                // println!("Name: {name}");
+
+                let response = json!({
+                    "status": "ok",
+                    "data": msg,
+                });
+
+                conn.write_message(&response).await.unwrap();
+            } */
         });
     }
 }
@@ -56,28 +48,15 @@ pub async fn run(port: u16) -> crate::Result<()> {
 async fn handle(stream: TcpStream, db: Db) -> crate::Result<()> {
     let mut conn = Connection::new(stream);
 
-    match conn.read().await {
-        Ok(msg) => match msg {
-            None => Ok(()),
-            Some(Message::Request(cmd)) => cmd.execute(db, &mut conn).await,
-            Some(msg) => {
-                let emsg = "protocol error; unexpected message";
-                let res = Response::Error(emsg.to_string());
-                conn.write(res).await?;
-                Err(format!("{emsg}: {msg:?}").into())
-            }
-        },
-        Err(e) => match e {
-            Error::Parse(e) => {
-                let res = Response::Error(e.to_string());
-                conn.write(res).await?;
-                Err(e.into())
-            }
-            e => {
-                let res = Response::Error(format!("internal server error"));
-                conn.write(res).await?;
+    match conn.read_message::<Command>().await {
+        Ok(None) => Ok(()),
+        Ok(Some(cmd)) => cmd.execute(db, &mut conn).await,
+        Err(e) => {
+            if let Error::Parse(e) = e {
+                conn.write_message(&json!({"error": e})).await
+            } else {
                 Err(e)
             }
-        },
+        }
     }
 }

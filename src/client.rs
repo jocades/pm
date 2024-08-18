@@ -1,7 +1,7 @@
 use crate::cmd::{Ping, Start};
-use crate::message::{Message, Response};
 use crate::{Command, Connection};
 
+use serde_json::Value;
 use std::io::{Error, ErrorKind};
 use tokio::net::{TcpStream, ToSocketAddrs};
 
@@ -17,38 +17,33 @@ impl Client {
         Ok(Client { conn })
     }
 
-    pub async fn ping(&mut self, msg: Option<String>) -> crate::Result<()> {
+    pub async fn ping(&mut self, msg: Option<&str>) -> crate::Result<()> {
         let cmd = Command::from(Ping::new(msg));
-        self.conn.write(cmd).await?;
+        self.conn.write_message(&cmd).await?;
 
-        // self.read_response().await.map()
-        match self.read_response().await? {
-            Response::Ok(msg) => println!("Ok: {msg}"),
-            Response::Error(msg) => println!("Error: {msg}"),
-        };
+        let response = self.read_response().await?;
+        println!("{}", response["data"]);
 
         Ok(())
     }
 
     pub async fn start(
         &mut self,
-        process: String,
-        name: Option<String>,
+        process: &str,
+        name: Option<&str>,
     ) -> crate::Result<()> {
         let cmd = Command::from(Start::new(process, name));
-        self.conn.write(cmd).await?;
+        self.conn.write_message(&cmd).await?;
 
-        match self.read_response().await? {
-            Response::Ok(msg) => println!("Ok: {msg}"),
-            Response::Error(msg) => println!("Error: {msg}"),
-        };
+        let response = self.read_response().await?;
+        println!("{}", response);
 
         Ok(())
     }
 
-    pub async fn read_response(&mut self) -> crate::Result<Response> {
-        match self.conn.read().await? {
-            Some(Message::Response(res)) => Ok(res),
+    pub async fn read_response(&mut self) -> crate::Result<Value> {
+        match self.conn.read_message().await? {
+            Some(msg) => Ok(msg),
             None => {
                 // Receiving `None` here indicates the server has closed the
                 // connection without sending a response. This is unexpected
@@ -56,15 +51,6 @@ impl Client {
                 let err = Error::new(
                     ErrorKind::ConnectionReset,
                     "connection reset by server",
-                );
-
-                Err(err.into())
-            }
-            _ => {
-                // Receiving a message other than a response is unexpected.
-                let err = Error::new(
-                    ErrorKind::InvalidData,
-                    "unexpected message from server",
                 );
 
                 Err(err.into())

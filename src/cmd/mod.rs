@@ -28,7 +28,7 @@ impl Executor for Command {
     async fn execute(self, db: Db, conn: &mut Connection) -> crate::Result<()> {
         use Command::*;
         match self {
-            Ping(cmd) => cmd.execute(db, conn).await,
+            Ping(cmd) => cmd.execute(conn).await,
             Start(cmd) => cmd.execute(db, conn).await,
             Stop(cmd) => cmd.execute(db, conn).await,
         }

@@ -1,9 +1,9 @@
-use super::Executor;
-use crate::{db::Db, Connection, Response};
+use crate::Connection;
 
 use clap::Args;
 use log::debug;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 #[derive(Args, Serialize, Deserialize, Debug)]
 pub struct Ping {
@@ -18,10 +18,13 @@ impl Ping {
     }
 }
 
-impl Executor for Ping {
-    async fn execute(self, db: Db, conn: &mut Connection) -> crate::Result<()> {
-        let res = Response::Ok(self.msg.unwrap_or_else(|| "Pong!".into()));
-        debug!("{res:?}");
-        conn.write(res).await
+impl Ping {
+    pub async fn execute(self, conn: &mut Connection) -> crate::Result<()> {
+        let response = json!({
+            "status": "ok",
+            "data": self.msg.unwrap_or_else(|| "Pong!".into()),
+        });
+        debug!("{response:?}");
+        conn.write_message(&response).await
     }
 }
