@@ -1,6 +1,7 @@
 use pm::{Client, Command, DEFAULT_PORT, LOCAL_HOST};
 
 use clap::Parser;
+use tabled::{builder::Builder, settings::Style, Table};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> pm::Result<()> {
@@ -20,6 +21,14 @@ async fn main() -> pm::Result<()> {
             client.start(&args.task, args.name.as_deref()).await?;
         }
         Stop(args) => client.stop(&args.name).await?,
+        List(_) => {
+            let tasks = client.list().await?;
+
+            let mut table = Table::new(&tasks);
+            table.with(Style::modern_rounded());
+
+            println!("{table}");
+        }
     }
 
     Ok(())

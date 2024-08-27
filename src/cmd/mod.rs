@@ -7,6 +7,9 @@ pub use start::Start;
 mod stop;
 pub use stop::Stop;
 
+mod list;
+pub use list::List;
+
 use crate::Connection;
 use crate::State as BaseState;
 
@@ -20,6 +23,7 @@ pub enum Command {
     Ping(Ping),
     Start(Start),
     Stop(Stop),
+    List(List),
 }
 
 pub(crate) type State = Arc<Mutex<BaseState>>;
@@ -35,6 +39,7 @@ impl Executor for Command {
             Ping(cmd) => cmd.execute(c).await,
             Start(cmd) => cmd.execute(s, c).await,
             Stop(cmd) => cmd.execute(s, c).await,
+            List(cmd) => cmd.execute(s, c).await,
         }
     }
 }

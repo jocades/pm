@@ -1,6 +1,6 @@
-use crate::cmd::{Ping, Start, Stop};
+use crate::cmd::{List, Ping, Start, Stop};
 use crate::server::Response;
-use crate::state::ProcessInfo;
+use crate::state::Task;
 use crate::{Command, Connection};
 
 use std::io::{Error, ErrorKind};
@@ -35,7 +35,7 @@ impl Client {
         let cmd = Command::from(Start::new(task, name));
         self.conn.write(&cmd).await?;
 
-        let res = self.read_response::<ProcessInfo>().await?;
+        let res = self.read_response::<Task>().await?;
         println!("{:?}", res);
 
         Ok(())
@@ -49,6 +49,14 @@ impl Client {
         println!("{:?}", res);
 
         Ok(())
+    }
+
+    pub async fn list(&mut self) -> crate::Result<Vec<Task>> {
+        let cmd = Command::from(List);
+        self.conn.write(&cmd).await?;
+
+        let res = self.read_response::<Vec<Task>>().await?;
+        Ok(res.data)
     }
 
     pub async fn read_response<T>(&mut self) -> crate::Result<Response<T>>

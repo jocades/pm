@@ -22,11 +22,7 @@ impl Stop {
 }
 
 impl Executor for Stop {
-    async fn execute(
-        self,
-        s: State,
-        conn: &mut Connection,
-    ) -> crate::Result<()> {
+    async fn execute(self, s: State, c: &mut Connection) -> crate::Result<()> {
         info!("Stopping: {}", self.name);
 
         let response = {
@@ -53,7 +49,7 @@ impl Executor for Stop {
             }
         };
 
-        conn.write(&response).await?;
+        c.write(&response).await?;
         Ok(())
     }
 }

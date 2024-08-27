@@ -4,7 +4,7 @@ function log(msg) {
 
 const server = Bun.serve({
   development: false,
-  port: 8000,
+  port: 6969,
   fetch(req) {
     const url = new URL(req.url);
     log(`${req.method} ${url.pathname}`);

@@ -1,13 +1,13 @@
 use super::{Executor, State};
 use crate::server::Response;
-use crate::state::ProcessInfo;
+use crate::state::Task;
 use crate::Connection;
 
 use clap::Args;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
-use std::process::{Command, Stdio};
+use std::process::Command;
 
 // $ pm start server.js --name api
 // $ pm start "bun run server.js" --name api
@@ -46,8 +46,8 @@ impl Executor for Start {
 
             command
                 .args(["run", self.task.as_str()])
-                .stdout(Stdio::from(fstdout))
-                .stderr(Stdio::from(fstderr));
+                .stdout(fstdout)
+                .stderr(fstderr);
 
             debug!("Starting: {} ({})", name, self.task);
 
@@ -58,12 +58,15 @@ impl Executor for Start {
 
             fs::write(s.path.join(format!("{name}.pid")), pid.to_string())?;
 
-            let info = ProcessInfo {
+            let args: Vec<String> = command
+                .get_args()
+                .map(|s| s.to_string_lossy().to_string())
+                .collect();
+
+            let info = Task {
                 name: name.clone(),
                 pid,
-                args: Vec::new(),
                 command: self.task,
-                log_file: pstdout,
                 cpu_usage: 0.00,
                 mem_usage: 0,
             };

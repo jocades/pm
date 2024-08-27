@@ -5,9 +5,9 @@ use crate::{Command, Connection, Error, LOCAL_HOST};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::env;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
+use std::{env, fs};
 use sysinfo::System;
 use tokio::net::{TcpListener, TcpStream};
 
@@ -33,6 +33,18 @@ impl<T: Serialize> Response<T> {
 }
 
 pub async fn run(port: u16) -> crate::Result<()> {
+    /* tokio::task::spawn_blocking(|| {
+            let mut sys = System::new();
+            loop {
+                sys.refresh_cpu_usage();
+                let cpus: Vec<_> =
+                    sys.cpus().iter().map(|cpu| cpu.cpu_usage()).collect();
+                // let _ = tx.send(cpus);
+                println!("{:?}", cpus);
+                std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
+            }
+        });
+    */
     let listener = TcpListener::bind(format!("{LOCAL_HOST}:{port}")).await?;
 
     info!("Server started with pid: {}", std::process::id());
@@ -55,17 +67,14 @@ pub async fn run(port: u16) -> crate::Result<()> {
     }
 }
 
-async fn handle(
-    stream: TcpStream,
-    state: Arc<Mutex<State>>,
-) -> crate::Result<()> {
+async fn handle(stream: TcpStream, s: Arc<Mutex<State>>) -> crate::Result<()> {
     let mut conn = Connection::new(stream);
 
     match conn.read::<Command>().await {
         Ok(None) => Ok(()),
         Ok(Some(cmd)) => {
             {
-                let mut state = state.lock().unwrap();
+                let mut state = s.lock().unwrap();
                 state.sys.refresh_all();
                 println!("=> system:");
                 // RAM and swap information:
@@ -91,7 +100,7 @@ async fn handle(
                 println!("System host name:        {:?}", System::host_name());
             }
 
-            cmd.execute(state, &mut conn).await
+            cmd.execute(s, &mut conn).await
         }
         Err(e) => {
             if let Error::Parse(e) = e {
@@ -101,4 +110,20 @@ async fn handle(
             }
         }
     }
+}
+
+async fn restore(s: &mut State) -> crate::Result<()> {
+    // get all the pids and run the commands
+
+    /* let pids = fs::read_dir(s.path.join("pids"))?
+    .filter_map(|entry| {
+        entry.ok().and_then(|e| {
+            e.file_name().into_string().ok().and_then(|s| {
+                s.strip_suffix(".pid").and_then(|_| s.parse::<u32>().ok())
+            })
+        })
+    })
+    .collect::<Vec<_>>(); */
+
+    Ok(())
 }

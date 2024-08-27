@@ -3,7 +3,6 @@ use crate::{server::Response, Connection};
 use clap::Args;
 use log::debug;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 
 #[derive(Args, Serialize, Deserialize, Debug)]
 pub struct Ping {
